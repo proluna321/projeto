@@ -122,80 +122,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Tornar elemento arrastável
     function makeDraggable(element) {
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let isDragging = false;
+        let currentX = 0;
+        let currentY = 0;
+        let initialX = 0;
+        let initialY = 0;
+
+        // Função para iniciar o arrasto
+        function startDragging(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Determinar se é evento de mouse ou toque
+            const event = e.type === 'touchstart' ? e.touches[0] : e;
+
+            initialX = event.clientX - currentX;
+            initialY = event.clientY - currentY;
+            isDragging = true;
+
+            // Prevenir seleção de texto
+            element.style.userSelect = 'none';
+            document.body.style.userSelect = 'none';
+
+            // Feedback visual
+            element.style.cursor = 'grabbing';
+            element.classList.add('dragging');
+        }
+
+        // Função para arrastar
+        function drag(e) {
+            if (!isDragging) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Determinar se é evento de mouse ou toque
+            const event = e.type === 'touchmove' ? e.touches[0] : e;
+
+            const rect = mediaContainer.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+
+            // Calcular nova posição
+            let newX = event.clientX - initialX;
+            let newY = event.clientY - initialY;
+
+            // Limitar ao contêiner, considerando o tamanho do elemento
+            const minX = 0;
+            const minY = 0;
+            const maxX = rect.width - elementRect.width;
+            const maxY = rect.height - elementRect.height;
+
+            newX = Math.max(minX, Math.min(newX, maxX));
+            newY = Math.max(minY, Math.min(newY, maxY));
+
+            // Converter para porcentagem relativa ao contêiner
+            currentX = newX;
+            currentY = newY;
+            element.style.left = `${(newX / rect.width) * 100}%`;
+            element.style.top = `${(newY / rect.height) * 100}%`;
+        }
+
+        // Função para finalizar o arrasto
+        function stopDragging() {
+            isDragging = false;
+
+            // Restaurar seleção de texto
+            element.style.userSelect = '';
+            document.body.style.userSelect = '';
+            element.style.cursor = 'move';
+            element.classList.remove('dragging');
+        }
 
         // Eventos de mouse
-        element.onmousedown = dragMouseDown;
+        element.addEventListener('mousedown', startDragging);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDragging);
 
         // Eventos de toque
-        element.ontouchstart = dragTouchStart;
+        element.addEventListener('touchstart', startDragging, { passive: false });
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', stopDragging);
+        document.addEventListener('touchcancel', stopDragging);
 
-        function dragMouseDown(e) {
-            e = e || window.event;
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Obter posição inicial do cursor
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
-        }
-
-        function dragTouchStart(e) {
-            e.stopPropagation();
-            if (e.touches.length === 1) { // Apenas um toque
-                e.preventDefault(); // Evitar rolagem/zoom
-
-                // Obter posição inicial do toque
-                pos3 = e.touches[0].clientX;
-                pos4 = e.touches[0].clientY;
-                document.ontouchend = closeDragElement;
-                document.ontouchmove = elementDrag;
-            }
-        }
-
-        function elementDrag(e) {
-            e = e || window.event;
-            e.preventDefault();
-
-            // Determinar novas coordenadas com base no tipo de evento
-            let clientX, clientY;
-            if (e.type === 'touchmove') {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-
-            // Calcular a nova posição do cursor
-            pos1 = pos3 - clientX;
-            pos2 = pos4 - clientY;
-            pos3 = clientX;
-            pos4 = clientY;
-
-            // Definir a nova posição do elemento
-            const rect = mediaContainer.getBoundingClientRect();
-            let newTop = (element.offsetTop - pos2) / rect.height * 100;
-            let newLeft = (element.offsetLeft - pos1) / rect.width * 100;
-
-            // Limitar aos limites do contêiner
-            newTop = Math.max(0, Math.min(100, newTop));
-            newLeft = Math.max(0, Math.min(100, newLeft));
-
-            element.style.top = `${newTop}%`;
-            element.style.left = `${newLeft}%`;
-        }
-
-        function closeDragElement() {
-            // Remover eventos de mouse
-            document.onmouseup = null;
-            document.onmousemove = null;
-            // Remover eventos de toque
-            document.ontouchend = null;
-            document.ontouchmove = null;
-        }
+        // Prevenir comportamento padrão de arrasto do navegador
+        element.addEventListener('dragstart', (e) => e.preventDefault());
     }
 
     // Atualizar texto em tempo real
@@ -527,6 +537,14 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.filter = imagePreview.style.filter || 'none';
             ctx.drawImage(img, 0, 0);
             
+            // Obter dimensões do media-container para escalar texto
+            const containerRect = mediaContainer.getBoundingClientRect();
+            const imgPreviewRect = imagePreview.getBoundingClientRect();
+            
+            // Calcular fatores de escala baseados nas dimensões reais da imagem no preview
+            const scaleX = canvas.width / imgPreviewRect.width;
+            const scaleY = canvas.height / imgPreviewRect.height;
+            
             // Adicionar textos ao canvas
             const textElements = document.querySelectorAll('.draggable-text');
             textElements.forEach(textElement => {
@@ -540,10 +558,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const left = parseFloat(textElement.style.left) || 50;
                 const top = parseFloat(textElement.style.top) || 50;
                 
+                // Escalar posição e tamanho para o canvas
                 const x = (left / 100) * canvas.width;
                 const y = (top / 100) * canvas.height;
+                const scaledFontSize = fontSize * Math.min(scaleX, scaleY); // Escalar tamanho da fonte
                 
-                ctx.font = `${fontSize}px ${fontFamily}`;
+                ctx.font = `${scaledFontSize}px ${fontFamily}`;
                 ctx.fillStyle = color;
                 ctx.textAlign = textAlign;
                 ctx.textBaseline = 'middle';

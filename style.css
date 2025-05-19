@@ -426,14 +426,18 @@ h3 {
     position: absolute;
     cursor: move;
     user-select: none;
-    transform: translate(-50%, -50%);
     padding: 5px;
     max-width: 80%;
     word-break: break-word;
     text-align: center;
+    transition: left 0.1s ease-out, top 0.1s ease-out;
 }
 
-.text-active {
+.draggable-text.dragging {
+    transition: none;
+}
+
+.draggable-text.text-active {
     outline: 2px dashed var(--primary-color);
 }
 
