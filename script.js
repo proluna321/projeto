@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Variáveis globais
     let stream = null;
     let currentImage = null;
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbx-PejljGT1_4h-Fs2L8qvWHH69l8oF-K2hAFfLDLl0zn7-2uFqUrZyuoz630vrhhvD/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbx_QNWJB10INetzQBj9mV3spD8qlhO4xFgsmXE_WGkUVKOkOOut_7hle7QY4aTZnDNv2w/exec";
     let activeTextElement = null;
     const fonts = ['Arial', 'Courier New', 'Georgia', 'Times New Roman', 'Verdana', 'Impact'];
     let currentFontIndex = 0;
@@ -123,47 +123,78 @@ document.addEventListener('DOMContentLoaded', function() {
     // Tornar elemento arrastável
     function makeDraggable(element) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        
+
+        // Eventos de mouse
         element.onmousedown = dragMouseDown;
-        
+
+        // Eventos de toque
+        element.ontouchstart = dragTouchStart;
+
         function dragMouseDown(e) {
             e = e || window.event;
             e.preventDefault();
             e.stopPropagation();
-            
-            // Get the mouse cursor position at startup
+
+            // Obter posição inicial do cursor
             pos3 = e.clientX;
             pos4 = e.clientY;
             document.onmouseup = closeDragElement;
             document.onmousemove = elementDrag;
         }
-        
+
+        function dragTouchStart(e) {
+            e.stopPropagation();
+            if (e.touches.length === 1) { // Apenas um toque
+                e.preventDefault(); // Evitar rolagem/zoom
+
+                // Obter posição inicial do toque
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementDrag;
+            }
+        }
+
         function elementDrag(e) {
             e = e || window.event;
             e.preventDefault();
-            
-            // Calculate the new cursor position
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            
-            // Set the element's new position
+
+            // Determinar novas coordenadas com base no tipo de evento
+            let clientX, clientY;
+            if (e.type === 'touchmove') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            // Calcular a nova posição do cursor
+            pos1 = pos3 - clientX;
+            pos2 = pos4 - clientY;
+            pos3 = clientX;
+            pos4 = clientY;
+
+            // Definir a nova posição do elemento
             const rect = mediaContainer.getBoundingClientRect();
             let newTop = (element.offsetTop - pos2) / rect.height * 100;
             let newLeft = (element.offsetLeft - pos1) / rect.width * 100;
-            
-            // Limit to container bounds
+
+            // Limitar aos limites do contêiner
             newTop = Math.max(0, Math.min(100, newTop));
             newLeft = Math.max(0, Math.min(100, newLeft));
-            
+
             element.style.top = `${newTop}%`;
             element.style.left = `${newLeft}%`;
         }
-        
+
         function closeDragElement() {
+            // Remover eventos de mouse
             document.onmouseup = null;
             document.onmousemove = null;
+            // Remover eventos de toque
+            document.ontouchend = null;
+            document.ontouchmove = null;
         }
     }
 
