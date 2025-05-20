@@ -75,10 +75,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== FUNCIONALIDADES DE TEXTO ==========
     // Adicionar novo texto
     addTextBtn.addEventListener('click', (e) => {
-        // Verificar se já existe um texto
         const existingText = document.querySelector('.draggable-text');
         if (existingText) {
-            return; // Impede a adição de mais textos
+            return;
         }
 
         const isMobile = isMobileDevice();
@@ -110,10 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
         textElement.style.transform = 'translate(-50%, -50%)';
         textElement.style.whiteSpace = 'pre-wrap';
 
-        // Tornar arrastável e manipulável
         makeTextManipulable(textElement);
 
-        // Selecionar ao clicar
         textElement.addEventListener('click', (e) => {
             e.stopPropagation();
             selectTextElement(textElement);
@@ -122,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Selecionar ao tocar
         textElement.addEventListener('touchstart', (e) => {
             e.stopPropagation();
             selectTextElement(textElement);
@@ -145,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
         element.contentEditable = true;
         textToolbar.style.display = 'block';
 
-        // Atualizar controles com as propriedades do texto selecionado
         textColor.value = rgbToHex(element.style.color) || '#000000';
         const fontFamily = element.style.fontFamily || 'Arial';
         currentFontIndex = fonts.indexOf(fontFamily);
@@ -157,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         changeAlign.innerHTML = `<i class="fas ${alignments[currentAlignIndex].icon}"></i>`;
     }
 
-    // Tornar elemento manipulável (arrastar, redimensionar, rotacionar)
+    // Tornar elemento manipulável
     function makeTextManipulable(element) {
         let isDragging = false;
         let isPinching = false;
@@ -170,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let currentScale = 1;
         let currentRotation = 0;
 
-        // Obter escala e rotação atuais
         function getTransform() {
             const transform = element.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
             transform.forEach(t => {
@@ -183,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Iniciar manipulação
         function startManipulation(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -192,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             getTransform();
 
             if (isMobile && e.type === 'touchstart' && e.touches.length === 2) {
-                // Gestos com dois dedos
                 isPinching = true;
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
@@ -206,7 +198,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
                 element.classList.add('dragging');
             } else if (e.type === 'touchstart' || e.type === 'mousedown') {
-                // Arrasto com um dedo ou mouse
                 isDragging = true;
                 const event = e.type === 'touchstart' ? e.touches[0] : e;
                 initialX = event.clientX - currentX;
@@ -219,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
             element.style.cursor = isPinching ? 'grabbing' : 'move';
         }
 
-        // Manipular (mover, redimensionar, rotacionar)
         function manipulate(e) {
             if (!isDragging && !isPinching) return;
 
@@ -230,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const elementRect = element.getBoundingClientRect();
 
             if (isPinching && e.type === 'touchmove' && e.touches.length === 2) {
-                // Redimensionar e rotacionar
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 const currentDistance = Math.hypot(
@@ -248,12 +237,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const newRotation = currentRotation + angleDiff;
 
                 element.style.transform = `translate(-50%, -50%) scale(${newScale}) rotate(${newRotation}deg)`;
+ ге
                 initialDistance = currentDistance;
                 initialAngle = currentAngle;
                 currentScale = newScale;
                 currentRotation = newRotation;
             } else if (isDragging) {
-                // Mover
                 const event = e.type === 'touchmove' ? e.touches[0] : e;
                 let newX = event.clientX - initialX;
                 let newY = event.clientY - initialY;
@@ -273,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Finalizar manipulação
         function stopManipulation() {
             isDragging = false;
             isPinching = false;
@@ -283,18 +271,15 @@ document.addEventListener('DOMContentLoaded', function() {
             element.classList.remove('dragging');
         }
 
-        // Eventos de mouse
         element.addEventListener('mousedown', startManipulation);
         document.addEventListener('mousemove', manipulate);
         document.addEventListener('mouseup', stopManipulation);
 
-        // Eventos de toque
         element.addEventListener('touchstart', startManipulation, { passive: false });
         document.addEventListener('touchmove', manipulate, { passive: false });
         document.addEventListener('touchend', stopManipulation);
         document.addEventListener('touchcancel', stopManipulation);
 
-        // Prevenir comportamento padrão de arrasto
         element.addEventListener('dragstart', (e) => e.preventDefault());
     }
 
@@ -357,7 +342,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========== FUNCIONALIDADES DE CÂMERA E IMAGEM ==========
-    // Abrir câmera e mostrar menu
     toggleCameraBtn.addEventListener('click', async () => {
         if (!isCameraActive) {
             try {
@@ -397,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Tirar foto
     capturePhotoBtn.addEventListener('click', () => {
         const canvas = document.createElement('canvas');
         const videoWidth = cameraView.videoWidth;
@@ -450,7 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showStatus("Foto capturada. Clique em 'Enviar para o Drive'.", 'info');
     });
 
-    // Alternar câmera
     switchCameraBtn.addEventListener('click', async () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -484,7 +466,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Sair da câmera
     exitCameraBtn.addEventListener('click', () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -501,7 +482,6 @@ document.addEventListener('DOMContentLoaded', function() {
         resetStatus();
     });
 
-    // Escolher arquivo
     chooseFileBtn.addEventListener('click', () => {
         fileInput.click();
     });
@@ -537,7 +517,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========== FUNCIONALIDADES DE FILTROS ==========
-    // Selecionar filtro
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             filterBtns.forEach(b => b.classList.remove('active'));
@@ -547,7 +526,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Aplicar filtro
     function applyFilter() {
         if (!currentImage) return;
         
@@ -563,14 +541,12 @@ document.addEventListener('DOMContentLoaded', function() {
         imagePreview.style.filter = filterValue;
     }
 
-    // Controle de intensidade
     filterIntensity.addEventListener('input', () => {
         currentFilterIntensity = filterIntensity.value;
         applyFilter();
     });
 
     // ========== FUNCIONALIDADE DE UPLOAD ==========
-    // Enviar para o Drive
     uploadBtn.addEventListener('click', async () => {
         if (!currentImage) {
             showError("Nenhuma imagem para enviar");
@@ -592,18 +568,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 img.src = currentImage;
             });
             
-            canvas.width = img.width;
-            canvas.height = img.height;
+            // Ajustar canvas para considerar devicePixelRatio
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = img.width * dpr;
+            canvas.height = img.height * dpr;
             const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr); // Escalar o contexto para alta densidade
             
+            // Aplicar filtro
             ctx.filter = imagePreview.style.filter || 'none';
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, img.width, img.height);
             
             const containerRect = mediaContainer.getBoundingClientRect();
             const imgPreviewRect = imagePreview.getBoundingClientRect();
             
-            const scaleX = canvas.width / imgPreviewRect.width;
-            const scaleY = canvas.height / imgPreviewRect.height;
+            // Calcular escala considerando o tamanho real da imagem no canvas
+            const scaleX = img.width / imgPreviewRect.width;
+            const scaleY = img.height / imgPreviewRect.height;
+            
+            // Calcular o deslocamento da imagem dentro do container
+            const offsetX = (containerRect.width - imgPreviewRect.width) / 2;
+            const offsetY = (containerRect.height - imgPreviewRect.height) / 2;
             
             const textElements = document.querySelectorAll('.draggable-text');
             textElements.forEach(textElement => {
@@ -614,28 +599,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 const textAlign = textElement.style.textAlign || 'center';
                 
                 const textRect = textElement.getBoundingClientRect();
-                const relativeX = (textRect.left - imgPreviewRect.left + (textRect.width / 2)) * scaleX;
-                const relativeY = (textRect.top - imgPreviewRect.top + (textRect.height / 2)) * scaleY;
                 
-                const x = relativeX;
-                const y = relativeY;
-                const transform = textElement.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
-                let scale = 1;
-                transform.forEach(t => {
-                    if (t.includes('scale')) {
-                        scale = parseFloat(t.match(/scale\(([^)]+)\)/)[1]) || 1;
-                    }
-                });
-                const scaledFontSize = fontSize * scale; // Usar a escala da manipulação para manter o tamanho visual
-
+                // Calcular posição relativa ao container, ajustando translate(-50%, -50%)
+                const relativeX = textRect.left - containerRect.left - offsetX + (textRect.width / 2);
+                const relativeY = textRect.top - containerRect.top - offsetY + (textRect.height / 2);
+                
+                // Escalar posição para o canvas
+                const x = relativeX * scaleX;
+                const y = relativeY * scaleY;
+                
+                // Ajustar tamanho da fonte sem dupla escalagem
+                const scaledFontSize = fontSize * Math.min(scaleX, scaleY) * dpr;
+                
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
                 ctx.fillStyle = color;
                 ctx.textAlign = textAlign;
                 ctx.textBaseline = 'middle';
 
-                // Aplicar rotação
+                // Aplicar transformação (escala e rotação)
+                const transform = textElement.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
+                let scale = 1;
                 let rotation = 0;
                 transform.forEach(t => {
+                    if (t.includes('scale')) {
+                        scale = parseFloat(t.match(/scale\(([^)]+)\)/)[1]) || 1;
+                    }
                     if (t.includes('rotate')) {
                         rotation = parseFloat(t.match(/rotate\(([^)]+)\)/)[1]) || 0;
                     }
@@ -750,7 +738,6 @@ document.addEventListener('DOMContentLoaded', function() {
         progressText.textContent = `${Math.round(percent)}%`;
     }
 
-    // Inicializar
     addTextBtn.disabled = true;
     uploadBtn.disabled = true;
 });
