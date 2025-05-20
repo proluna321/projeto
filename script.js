@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
             y = `${((touch.clientY - rect.top) / rect.height) * 100}%`;
         }
         
-        addTextElement('', x, y); // Alterado para texto vazio ('') em vez de 'Digite aqui'
+        addTextElement('', x, y);
     });
 
     // Criar elemento de texto
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const textElement = document.createElement('div');
         textElement.className = 'draggable-text text-active';
         textElement.contentEditable = true;
-        textElement.textContent = initialText; // Agora pode ser vazio
+        textElement.textContent = initialText;
         textElement.style.color = textColor.value;
         textElement.style.fontSize = '24px';
         textElement.style.fontFamily = fonts[currentFontIndex];
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         mediaContainer.appendChild(textElement);
         selectTextElement(textElement);
-        textElement.focus(); // Garante que a barra piscante apareça
+        textElement.focus();
     }
 
     // Selecionar elemento de texto
@@ -602,9 +602,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const containerRect = mediaContainer.getBoundingClientRect();
             const imgPreviewRect = imagePreview.getBoundingClientRect();
             
-            const offsetX = (containerRect.width - imgPreviewRect.width) / 2;
-            const offsetY = (containerRect.height - imgPreviewRect.height) / 2;
-            
             const scaleX = canvas.width / imgPreviewRect.width;
             const scaleY = canvas.height / imgPreviewRect.height;
             
@@ -617,15 +614,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const textAlign = textElement.style.textAlign || 'center';
                 
                 const textRect = textElement.getBoundingClientRect();
-                const containerRect = mediaContainer.getBoundingClientRect();
-                
-                // Recalcular coordenadas absolutas em relação à imagem original
                 const relativeX = (textRect.left - imgPreviewRect.left + (textRect.width / 2)) * scaleX;
                 const relativeY = (textRect.top - imgPreviewRect.top + (textRect.height / 2)) * scaleY;
                 
-                const x = relativeX - (canvas.width / 2) + (imgPreviewRect.width * scaleX / 2);
-                const y = relativeY - (canvas.height / 2) + (imgPreviewRect.height * scaleY / 2);
-                
+                const x = relativeX;
+                const y = relativeY;
                 const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
                 
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
