@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
         element.contentEditable = true;
         textToolbar.style.display = 'block';
         
-        // Atualizar controles com as propriedades do texto selecionado
+        // Atualatmizar controles com as propriedades do texto selecionado
         textInput.value = element.textContent;
         textColor.value = rgbToHex(element.style.color) || '#000000';
         const fontSize = parseInt(element.style.fontSize);
@@ -537,11 +537,15 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.filter = imagePreview.style.filter || 'none';
             ctx.drawImage(img, 0, 0);
             
-            // Obter dimensões do media-container para escalar texto
+            // Obter dimensões do media-container e da imagem na pré-visualização
             const containerRect = mediaContainer.getBoundingClientRect();
             const imgPreviewRect = imagePreview.getBoundingClientRect();
             
-            // Calcular fatores de escala baseados nas dimensões reais da imagem no preview
+            // Calcular offsets para centralização da imagem no contêiner
+            const offsetX = (containerRect.width - imgPreviewRect.width) / 2;
+            const offsetY = (containerRect.height - imgPreviewRect.height) / 2;
+            
+            // Calcular fatores de escala baseados nas dimensões reais da imagem
             const scaleX = canvas.width / imgPreviewRect.width;
             const scaleY = canvas.height / imgPreviewRect.height;
             
@@ -554,13 +558,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const fontFamily = textElement.style.fontFamily || 'Arial';
                 const textAlign = textElement.style.textAlign || 'center';
                 
-                // Calcular posição baseada em porcentagem
-                const left = parseFloat(textElement.style.left) || 50;
-                const top = parseFloat(textElement.style.top) || 50;
+                // Obter posição do texto em pixels relativos ao contêiner
+                const textRect = textElement.getBoundingClientRect();
+                const containerRect = mediaContainer.getBoundingClientRect();
+                
+                // Calcular posição relativa à imagem (considerando offsets)
+                const relativeX = textRect.left - imgPreviewRect.left + (textRect.width / 2);
+                const relativeY = textRect.top - imgPreviewRect.top + (textRect.height / 2);
                 
                 // Escalar posição e tamanho para o canvas
-                const x = (left / 100) * canvas.width;
-                const y = (top / 100) * canvas.height;
+                const x = relativeX * scaleX;
+                const y = relativeY * scaleY;
                 const scaledFontSize = fontSize * Math.min(scaleX, scaleY); // Escalar tamanho da fonte
                 
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
