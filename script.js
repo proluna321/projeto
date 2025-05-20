@@ -619,21 +619,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const x = relativeX;
                 const y = relativeY;
-                const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
-                
+                const transform = textElement.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
+                let scale = 1;
+                transform.forEach(t => {
+                    if (t.includes('scale')) {
+                        scale = parseFloat(t.match(/scale\(([^)]+)\)/)[1]) || 1;
+                    }
+                });
+                const scaledFontSize = fontSize * scale; // Usar a escala da manipulação para manter o tamanho visual
+
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
                 ctx.fillStyle = color;
                 ctx.textAlign = textAlign;
                 ctx.textBaseline = 'middle';
 
-                // Aplicar transformação (escala e rotação)
-                const transform = textElement.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
-                let scale = 1;
+                // Aplicar rotação
                 let rotation = 0;
                 transform.forEach(t => {
-                    if (t.includes('scale')) {
-                        scale = parseFloat(t.match(/scale\(([^)]+)\)/)[1]) || 1;
-                    }
                     if (t.includes('rotate')) {
                         rotation = parseFloat(t.match(/rotate\(([^)]+)\)/)[1]) || 0;
                     }
