@@ -389,6 +389,7 @@ h3 {
     border: 1px solid #ddd;
     border-radius: 5px;
     min-width: 120px;
+    font-size: 16px;
 }
 
 .color-picker {
@@ -430,7 +431,9 @@ h3 {
     max-width: 80%;
     word-break: break-word;
     text-align: center;
-    transition: left 0.1s ease-out, top 0.1s ease-out;
+    transition: left 0.1s ease-out, top 0.1s ease-out, transform 0.1s ease-out;
+    caret-color: var(--primary-color);
+    outline: none;
 }
 
 .draggable-text.dragging {
@@ -439,6 +442,7 @@ h3 {
 
 .draggable-text.text-active {
     outline: 2px dashed var(--primary-color);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Estilos do Menu da Câmera */
@@ -587,6 +591,7 @@ h3 {
 
     .text-input {
         min-width: 100px;
+        font-size: 14px;
     }
 
     .filters-scroll {
