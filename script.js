@@ -23,16 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterBtns = document.querySelectorAll('.filter-btn');
     const filterIntensity = document.getElementById('filterIntensity');
 
-    // Elementos da toolbar de texto
+    // Elementos do editor de texto
     const textToolbar = document.getElementById('textToolbar');
-    const textInput = document.getElementById('textInput');
     const textColor = document.getElementById('textColor');
-    const textSize = document.getElementById('textSize');
-    const textSizeValue = document.getElementById('textSizeValue');
     const changeFont = document.getElementById('changeFont');
-    const alignLeft = document.getElementById('alignLeft');
-    const alignCenter = document.getElementById('alignCenter');
-    const alignRight = document.getElementById('alignRight');
+    const changeAlign = document.getElementById('changeAlign');
     const finishText = document.getElementById('finishText');
 
     // Variáveis globais
@@ -42,10 +37,21 @@ document.addEventListener('DOMContentLoaded', function() {
     let activeTextElement = null;
     const fonts = ['Arial', 'Courier New', 'Georgia', 'Times New Roman', 'Verdana', 'Impact'];
     let currentFontIndex = 0;
+    const alignments = [
+        { name: 'center', icon: 'fa-align-center' },
+        { name: 'left', icon: 'fa-align-left' },
+        { name: 'right', icon: 'fa-align-right' }
+    ];
+    let currentAlignIndex = 0;
     let currentFilter = 'none';
     let currentFilterIntensity = 100;
     let isCameraActive = false;
     let currentFacingMode = 'environment';
+
+    // Função para verificar se é dispositivo móvel
+    function isMobileDevice() {
+        return /Mobi|Android|iPhone|iPad|iPod|Touch/.test(navigator.userAgent);
+    }
 
     // Habilitar botão de texto quando houver imagem
     function checkImageForText() {
@@ -68,36 +74,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ========== FUNCIONALIDADES DE TEXTO ==========
     // Adicionar novo texto
-    addTextBtn.addEventListener('click', () => {
-        addTextElement('Digite aqui');
+    addTextBtn.addEventListener('click', (e) => {
+        // Verificar se já existe um texto
+        const existingText = document.querySelector('.draggable-text');
+        if (existingText) {
+            return; // Impede a adição de mais textos
+        }
+
+        const isMobile = isMobileDevice();
+        let x = '50%';
+        let y = '50%';
+        
+        if (isMobile && e.type === 'touchstart') {
+            const touch = e.touches[0];
+            const rect = mediaContainer.getBoundingClientRect();
+            x = `${((touch.clientX - rect.left) / rect.width) * 100}%`;
+            y = `${((touch.clientY - rect.top) / rect.height) * 100}%`;
+        }
+        
+        addTextElement('Digite aqui', x, y);
     });
 
     // Criar elemento de texto
-    function addTextElement(initialText) {
+    function addTextElement(initialText, x = '50%', y = '50%') {
         const textElement = document.createElement('div');
         textElement.className = 'draggable-text text-active';
         textElement.contentEditable = true;
         textElement.textContent = initialText;
         textElement.style.color = textColor.value;
-        textElement.style.fontSize = `${textSize.value}px`;
+        textElement.style.fontSize = '24px';
         textElement.style.fontFamily = fonts[currentFontIndex];
-        textElement.style.left = '50%';
-        textElement.style.top = '50%';
+        textElement.style.textAlign = alignments[currentAlignIndex].name;
+        textElement.style.left = x;
+        textElement.style.top = y;
         textElement.style.transform = 'translate(-50%, -50%)';
-        textElement.dataset.rotation = '0'; // Armazenar rotação inicial
+        textElement.style.whiteSpace = 'pre-wrap';
 
-        // Tornar arrastável e transformável
-        makeDraggableAndTransformable(textElement);
-        
+        // Tornar arrastável e manipulável
+        makeTextManipulable(textElement);
+
         // Selecionar ao clicar
         textElement.addEventListener('click', (e) => {
             e.stopPropagation();
             selectTextElement(textElement);
+            if (isMobileDevice()) {
+                textElement.focus();
+            }
         });
-        
+
+        // Selecionar ao tocar
+        textElement.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            selectTextElement(textElement);
+            textElement.focus();
+        }, { passive: false });
+
         mediaContainer.appendChild(textElement);
         selectTextElement(textElement);
-        textElement.focus(); // Focar para mostrar cursor e abrir teclado
+        textElement.focus();
     }
 
     // Selecionar elemento de texto
@@ -110,89 +144,116 @@ document.addEventListener('DOMContentLoaded', function() {
         element.classList.add('text-active');
         element.contentEditable = true;
         textToolbar.style.display = 'block';
-        textInput.value = element.textContent;
+
+        // Atualizar controles com as propriedades do texto selecionado
         textColor.value = rgbToHex(element.style.color) || '#000000';
-        const fontSize = parseInt(element.style.fontSize) || 24;
-        textSize.value = fontSize;
-        textSizeValue.textContent = `${fontSize}px`;
-        textInput.focus();
+        const fontFamily = element.style.fontFamily || 'Arial';
+        currentFontIndex = fonts.indexOf(fontFamily);
+        if (currentFontIndex === -1) currentFontIndex = 0;
+        changeFont.textContent = fonts[currentFontIndex];
+        const textAlign = element.style.textAlign || 'center';
+        currentAlignIndex = alignments.findIndex(align => align.name === textAlign);
+        if (currentAlignIndex === -1) currentAlignIndex = 0;
+        changeAlign.innerHTML = `<i class="fas ${alignments[currentAlignIndex].icon}"></i>`;
     }
 
-    // Tornar elemento arrastável e transformável (pinça e rotação)
-    function makeDraggableAndTransformable(element) {
+    // Tornar elemento manipulável (arrastar, redimensionar, rotacionar)
+    function makeTextManipulable(element) {
         let isDragging = false;
         let isPinching = false;
-        let currentX = 0;
-        let currentY = 0;
         let initialX = 0;
         let initialY = 0;
+        let currentX = 0;
+        let currentY = 0;
         let initialDistance = 0;
         let initialAngle = 0;
-        let currentRotation = parseFloat(element.dataset.rotation) || 0;
-        let currentFontSize = parseInt(element.style.fontSize) || 24;
+        let currentScale = 1;
+        let currentRotation = 0;
 
-        // Função para iniciar interação
-        function startInteraction(e) {
+        // Obter escala e rotação atuais
+        function getTransform() {
+            const transform = element.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
+            transform.forEach(t => {
+                if (t.includes('scale')) {
+                    currentScale = parseFloat(t.match(/scale\(([^)]+)\)/)[1]) || 1;
+                }
+                if (t.includes('rotate')) {
+                    currentRotation = parseFloat(t.match(/rotate\(([^)]+)\)/)[1]) || 0;
+                }
+            });
+        }
+
+        // Iniciar manipulação
+        function startManipulation(e) {
             e.preventDefault();
             e.stopPropagation();
 
-            const rect = mediaContainer.getBoundingClientRect();
-            const elementRect = element.getBoundingClientRect();
+            const isMobile = isMobileDevice();
+            getTransform();
 
-            if (e.type === 'touchstart' && e.touches.length === 2) {
-                // Iniciar pinça/rotação (dois dedos)
+            if (isMobile && e.type === 'touchstart' && e.touches.length === 2) {
+                // Gestos com dois dedos
                 isPinching = true;
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
-                initialDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
-                initialAngle = Math.atan2(touch2.clientY - touch1.clientY, touch2.clientX - touch1.clientX) * 180 / Math.PI;
-            } else {
-                // Iniciar arrasto (um dedo ou mouse)
+                initialDistance = Math.hypot(
+                    touch1.clientX - touch2.clientX,
+                    touch1.clientY - touch2.clientY
+                );
+                initialAngle = Math.atan2(
+                    touch2.clientY - touch1.clientY,
+                    touch2.clientX - touch1.clientX
+                );
+                element.classList.add('dragging');
+            } else if (e.type === 'touchstart' || e.type === 'mousedown') {
+                // Arrasto com um dedo ou mouse
                 isDragging = true;
                 const event = e.type === 'touchstart' ? e.touches[0] : e;
                 initialX = event.clientX - currentX;
                 initialY = event.clientY - currentY;
+                element.classList.add('dragging');
             }
 
             element.style.userSelect = 'none';
             document.body.style.userSelect = 'none';
             element.style.cursor = isPinching ? 'grabbing' : 'move';
-            element.classList.add('dragging');
         }
 
-        // Função para mover ou transformar
-        function moveOrTransform(e) {
+        // Manipular (mover, redimensionar, rotacionar)
+        function manipulate(e) {
+            if (!isDragging && !isPinching) return;
+
             e.preventDefault();
             e.stopPropagation();
 
             const rect = mediaContainer.getBoundingClientRect();
             const elementRect = element.getBoundingClientRect();
 
-            if (isPinching && e.touches.length === 2) {
-                // Processar pinça/rotação
+            if (isPinching && e.type === 'touchmove' && e.touches.length === 2) {
+                // Redimensionar e rotacionar
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
-                const currentDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
-                const currentAngle = Math.atan2(touch2.clientY - touch1.clientY, touch2.clientX - touch1.clientX) * 180 / Math.PI;
+                const currentDistance = Math.hypot(
+                    touch1.clientX - touch2.clientX,
+                    touch1.clientY - touch2.clientY
+                );
+                const currentAngle = Math.atan2(
+                    touch2.clientY - touch1.clientY,
+                    touch2.clientX - touch1.clientX
+                );
 
-                // Redimensionar
-                const scale = currentDistance / initialDistance;
-                const newFontSize = Math.min(100, Math.max(12, currentFontSize * scale));
-                element.style.fontSize = `${newFontSize}px`;
-                currentFontSize = newFontSize;
-                textSize.value = newFontSize;
-                textSizeValue.textContent = `${newFontSize}px`;
+                const scaleFactor = currentDistance / initialDistance;
+                const newScale = Math.max(0.5, Math.min(currentScale * scaleFactor, 3));
+                const angleDiff = (currentAngle - initialAngle) * (180 / Math.PI);
+                const newRotation = currentRotation + angleDiff;
 
-                // Rotacionar
-                const angleDiff = currentAngle - initialAngle;
-                currentRotation = (currentRotation + angleDiff) % 360;
-                element.dataset.rotation = currentRotation;
-                element.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
-
+                element.style.transform = `translate(-50%, -50%) scale(${newScale}) rotate(${newRotation}deg)`;
                 initialDistance = currentDistance;
                 initialAngle = currentAngle;
+                currentScale = newScale;
+                currentRotation = newRotation;
             } else if (isDragging) {
-                // Processar arrasto
+                // Mover
                 const event = e.type === 'touchmove' ? e.touches[0] : e;
                 let newX = event.clientX - initialX;
                 let newY = event.clientY - initialY;
@@ -212,8 +273,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Função para finalizar interação
-        function stopInteraction() {
+        // Finalizar manipulação
+        function stopManipulation() {
             isDragging = false;
             isPinching = false;
             element.style.userSelect = '';
@@ -222,64 +283,25 @@ document.addEventListener('DOMContentLoaded', function() {
             element.classList.remove('dragging');
         }
 
-        // Suporte a desktop (Ctrl para redimensionar, Shift para rotacionar)
-        function handleMouseTransform(e) {
-            if (!isDragging) return;
-
-            if (e.ctrlKey) {
-                // Redimensionar com Ctrl + arrasto vertical
-                const deltaY = e.movementY;
-                currentFontSize = Math.min(100, Math.max(12, currentFontSize - deltaY * 0.5));
-                element.style.fontSize = `${currentFontSize}px`;
-                textSize.value = currentFontSize;
-                textSizeValue.textContent = `${currentFontSize}px`;
-            } else if (e.shiftKey) {
-                // Rotacionar com Shift + arrasto horizontal
-                const deltaX = e.movementX;
-                currentRotation = (currentRotation + deltaX * 0.5) % 360;
-                element.dataset.rotation = currentRotation;
-                element.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
-            }
-        }
+        // Eventos de mouse
+        element.addEventListener('mousedown', startManipulation);
+        document.addEventListener('mousemove', manipulate);
+        document.addEventListener('mouseup', stopManipulation);
 
         // Eventos de toque
-        element.addEventListener('touchstart', startInteraction, { passive: false });
-        document.addEventListener('touchmove', moveOrTransform, { passive: false });
-        document.addEventListener('touchend', stopInteraction);
-        document.addEventListener('touchcancel', stopInteraction);
+        element.addEventListener('touchstart', startManipulation, { passive: false });
+        document.addEventListener('touchmove', manipulate, { passive: false });
+        document.addEventListener('touchend', stopManipulation);
+        document.addEventListener('touchcancel', stopManipulation);
 
-        // Eventos de mouse
-        element.addEventListener('mousedown', startInteraction);
-        document.addEventListener('mousemove', (e) => {
-            moveOrTransform(e);
-            handleMouseTransform(e);
-        });
-        document.addEventListener('mouseup', stopInteraction);
-
-        // Prevenir arrasto padrão
+        // Prevenir comportamento padrão de arrasto
         element.addEventListener('dragstart', (e) => e.preventDefault());
     }
 
-    // Atualizar texto em tempo real
-    textInput.addEventListener('input', () => {
-        if (activeTextElement) {
-            activeTextElement.textContent = textInput.value || ' ';
-        }
-    });
-
-    // Atualizar cor
+    // Atualizar cor em tempo real
     textColor.addEventListener('input', () => {
         if (activeTextElement) {
             activeTextElement.style.color = textColor.value;
-        }
-    });
-
-    // Atualizar tamanho
-    textSize.addEventListener('input', () => {
-        const size = textSize.value;
-        textSizeValue.textContent = `${size}px`;
-        if (activeTextElement) {
-            activeTextElement.style.fontSize = `${size}px`;
         }
     });
 
@@ -292,15 +314,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Alinhamento
-    alignLeft.addEventListener('click', () => {
-        if (activeTextElement) activeTextElement.style.textAlign = 'left';
-    });
-    alignCenter.addEventListener('click', () => {
-        if (activeTextElement) activeTextElement.style.textAlign = 'center';
-    });
-    alignRight.addEventListener('click', () => {
-        if (activeTextElement) activeTextElement.style.textAlign = 'right';
+    // Mudar alinhamento
+    changeAlign.addEventListener('click', () => {
+        currentAlignIndex = (currentAlignIndex + 1) % alignments.length;
+        changeAlign.innerHTML = `<i class="fas ${alignments[currentAlignIndex].icon}"></i>`;
+        if (activeTextElement) {
+            activeTextElement.style.textAlign = alignments[currentAlignIndex].name;
+        }
     });
 
     // Finalizar edição
@@ -313,9 +333,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Desselecionar texto ao clicar fora
+    // Desselecionar texto ao clicar no container
     mediaContainer.addEventListener('click', (e) => {
-        if (e.target === mediaContainer || e.target === imagePreview) {
+        if (e.target === mediaContainer) {
             if (activeTextElement) {
                 activeTextElement.classList.remove('text-active');
                 activeTextElement.contentEditable = false;
@@ -337,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========== FUNCIONALIDADES DE CÂMERA E IMAGEM ==========
+    // Abrir câmera e mostrar menu
     toggleCameraBtn.addEventListener('click', async () => {
         if (!isCameraActive) {
             try {
@@ -376,6 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Tirar foto
     capturePhotoBtn.addEventListener('click', () => {
         const canvas = document.createElement('canvas');
         const videoWidth = cameraView.videoWidth;
@@ -428,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showStatus("Foto capturada. Clique em 'Enviar para o Drive'.", 'info');
     });
 
+    // Alternar câmera
     switchCameraBtn.addEventListener('click', async () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -461,6 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Sair da câmera
     exitCameraBtn.addEventListener('click', () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -477,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resetStatus();
     });
 
+    // Escolher arquivo
     chooseFileBtn.addEventListener('click', () => {
         fileInput.click();
     });
@@ -512,6 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========== FUNCIONALIDADES DE FILTROS ==========
+    // Selecionar filtro
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             filterBtns.forEach(b => b.classList.remove('active'));
@@ -521,6 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Aplicar filtro
     function applyFilter() {
         if (!currentImage) return;
         
@@ -536,12 +563,14 @@ document.addEventListener('DOMContentLoaded', function() {
         imagePreview.style.filter = filterValue;
     }
 
+    // Controle de intensidade
     filterIntensity.addEventListener('input', () => {
         currentFilterIntensity = filterIntensity.value;
         applyFilter();
     });
 
     // ========== FUNCIONALIDADE DE UPLOAD ==========
+    // Enviar para o Drive
     uploadBtn.addEventListener('click', async () => {
         if (!currentImage) {
             showError("Nenhuma imagem para enviar");
@@ -586,9 +615,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const fontSize = parseInt(textElement.style.fontSize) || 24;
                 const fontFamily = textElement.style.fontFamily || 'Arial';
                 const textAlign = textElement.style.textAlign || 'center';
-                const rotation = parseFloat(textElement.dataset.rotation) || 0;
                 
                 const textRect = textElement.getBoundingClientRect();
+                const containerRect = mediaContainer.getBoundingClientRect();
+                
                 const relativeX = textRect.left - imgPreviewRect.left + (textRect.width / 2);
                 const relativeY = textRect.top - imgPreviewRect.top + (textRect.height / 2);
                 
@@ -596,13 +626,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 const y = relativeY * scaleY;
                 const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
                 
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(rotation * Math.PI / 180);
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
                 ctx.fillStyle = color;
                 ctx.textAlign = textAlign;
                 ctx.textBaseline = 'middle';
+
+                // Aplicar transformação (escala e rotação)
+                const transform = textElement.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
+                let scale = 1;
+                let rotation = 0;
+                transform.forEach(t => {
+                    if (t.includes('scale')) {
+                        scale = parseFloat(t.match(/scale\(([^)]+)\)/)[1]) || 1;
+                    }
+                    if (t.includes('rotate')) {
+                        rotation = parseFloat(t.match(/rotate\(([^)]+)\)/)[1]) || 0;
+                    }
+                });
+
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation * Math.PI / 180);
+                ctx.scale(scale, scale);
                 ctx.fillText(text, 0, 0);
                 ctx.restore();
             });
@@ -707,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function() {
         progressBar.style.width = `${percent}%`;
         progressText.textContent = `${Math.round(percent)}%`;
     }
-    
+
     // Inicializar
     addTextBtn.disabled = true;
     uploadBtn.disabled = true;

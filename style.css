@@ -364,16 +364,17 @@ h3 {
 
 /* Estilos do Editor de Texto */
 .text-toolbar {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
-    left: 0;
-    right: 0;
+    left: 50%;
+    transform: translateX(-50%);
     background: white;
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0,0,0,0.2);
     z-index: 100;
-    margin: 0 20px;
+    width: calc(100% - 40px);
+    max-width: 600px;
 }
 
 .text-controls {
@@ -381,15 +382,7 @@ h3 {
     gap: 10px;
     align-items: center;
     flex-wrap: wrap;
-}
-
-.text-input {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    min-width: 120px;
-    font-size: 16px;
+    justify-content: center;
 }
 
 .color-picker {
@@ -397,16 +390,6 @@ h3 {
     height: 30px;
     padding: 0;
     border: none;
-}
-
-.size-slider {
-    width: 80px;
-}
-
-.size-value {
-    width: 40px;
-    text-align: center;
-    font-size: 12px;
 }
 
 .btn-text {
@@ -423,6 +406,10 @@ h3 {
     font-weight: bold;
 }
 
+.btn-text i {
+    font-size: 16px;
+}
+
 .draggable-text {
     position: absolute;
     cursor: move;
@@ -432,8 +419,7 @@ h3 {
     word-break: break-word;
     text-align: center;
     transition: left 0.1s ease-out, top 0.1s ease-out, transform 0.1s ease-out;
-    caret-color: var(--primary-color);
-    outline: none;
+    caret-color: auto;
 }
 
 .draggable-text.dragging {
@@ -442,7 +428,6 @@ h3 {
 
 .draggable-text.text-active {
     outline: 2px dashed var(--primary-color);
-    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Estilos do Menu da Câmera */
@@ -562,6 +547,39 @@ h3 {
     object-fit: cover;
 }
 
+/* Aplicar filtros às imagens de pré-visualização com base no data-filter */
+.filter-btn[data-filter="none"] .filter-preview {
+    filter: none;
+}
+
+.filter-btn[data-filter="grayscale(100%)"] .filter-preview {
+    filter: grayscale(100%);
+}
+
+.filter-btn[data-filter="sepia(100%)"] .filter-preview {
+    filter: sepia(100%);
+}
+
+.filter-btn[data-filter="brightness(150%)"] .filter-preview {
+    filter: brightness(150%);
+}
+
+.filter-btn[data-filter="contrast(150%)"] .filter-preview {
+    filter: contrast(150%);
+}
+
+.filter-btn[data-filter="saturate(200%)"] .filter-preview {
+    filter: saturate(200%);
+}
+
+.filter-btn[data-filter="hue-rotate(90deg)"] .filter-preview {
+    filter: hue-rotate(90deg);
+}
+
+.filter-btn[data-filter="blur(2px)"] .filter-preview {
+    filter: blur(2px);
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .container {
@@ -587,11 +605,6 @@ h3 {
 
     .text-controls {
         gap: 5px;
-    }
-
-    .text-input {
-        min-width: 100px;
-        font-size: 14px;
     }
 
     .filters-scroll {
@@ -656,16 +669,12 @@ h3 {
 
     .text-toolbar {
         padding: 8px;
-        margin: 0 10px;
+        width: calc(100% - 20px);
     }
 
     .btn-text {
         padding: 3px 6px;
         font-size: 12px;
-    }
-
-    .size-slider {
-        width: 60px;
     }
 
     .filters-container {
