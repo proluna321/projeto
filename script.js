@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
             y = `${((touch.clientY - rect.top) / rect.height) * 100}%`;
         }
         
-        addTextElement('Digite aqui', x, y);
+        addTextElement('', x, y); // Alterado para texto vazio ('') em vez de 'Digite aqui'
     });
 
     // Criar elemento de texto
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const textElement = document.createElement('div');
         textElement.className = 'draggable-text text-active';
         textElement.contentEditable = true;
-        textElement.textContent = initialText;
+        textElement.textContent = initialText; // Agora pode ser vazio
         textElement.style.color = textColor.value;
         textElement.style.fontSize = '24px';
         textElement.style.fontFamily = fonts[currentFontIndex];
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         mediaContainer.appendChild(textElement);
         selectTextElement(textElement);
-        textElement.focus();
+        textElement.focus(); // Garante que a barra piscante apareça
     }
 
     // Selecionar elemento de texto
@@ -619,11 +619,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const textRect = textElement.getBoundingClientRect();
                 const containerRect = mediaContainer.getBoundingClientRect();
                 
-                const relativeX = textRect.left - imgPreviewRect.left + (textRect.width / 2);
-                const relativeY = textRect.top - imgPreviewRect.top + (textRect.height / 2);
+                // Recalcular coordenadas absolutas em relação à imagem original
+                const relativeX = (textRect.left - imgPreviewRect.left + (textRect.width / 2)) * scaleX;
+                const relativeY = (textRect.top - imgPreviewRect.top + (textRect.height / 2)) * scaleY;
                 
-                const x = relativeX * scaleX;
-                const y = relativeY * scaleY;
+                const x = relativeX - (canvas.width / 2) + (imgPreviewRect.width * scaleX / 2);
+                const y = relativeY - (canvas.height / 2) + (imgPreviewRect.height * scaleY / 2);
+                
                 const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
                 
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
