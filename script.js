@@ -88,10 +88,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Função para ajustar a posição do texto na mudança de orientação
+    function adjustTextPosition() {
+        if (!isMobileDevice()) return;
+
+        const textElements = document.querySelectorAll('.draggable-text');
+        if (textElements.length === 0) return;
+
+        const containerRect = mediaContainer.getBoundingClientRect();
+        const imgPreviewRect = imagePreview.getBoundingClientRect();
+
+        textElements.forEach(textElement => {
+            const leftPercent = parseFloat(textElement.style.left) / 100;
+            const topPercent = parseFloat(textElement.style.top) / 100;
+
+            const isImageMode = imagePreview.style.display === 'block';
+            const referenceRect = isImageMode ? imgPreviewRect : containerRect;
+
+            let newLeft = leftPercent * referenceRect.width;
+            let newTop = topPercent * referenceRect.height;
+
+            if (isImageMode) {
+                newLeft += referenceRect.left - containerRect.left;
+                newTop += referenceRect.top - containerRect.top;
+            }
+
+            textElement.style.left = `${(newLeft / containerRect.width) * 100}%`;
+            textElement.style.top = `${(newTop / containerRect.height) * 100}%`;
+        });
+    }
+
     // Evento de mudança de orientação
     if (isMobileDevice()) {
-        window.addEventListener('orientationchange', adjustCameraOrientation);
-        window.addEventListener('resize', adjustCameraOrientation); // Fallback para compatibilidade
+        window.addEventListener('orientationchange', () => {
+            adjustCameraOrientation();
+            adjustTextPosition();
+        });
+        window.addEventListener('resize', () => {
+            adjustCameraOrientation();
+            adjustTextPosition();
+        });
     }
 
     // ========== FUNCIONALIDADES DE TEXTO ==========
@@ -108,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (isMobile && e.type === 'touchstart') {
             const touch = e.touches[0];
-            const rect = mediaContainer.getBoundingClientRect();
+            const rect = imagePreview.getBoundingClientRect();
             x = `${((touch.clientX - rect.left) / rect.width) * 100}%`;
             y = `${((touch.clientY - rect.top) / rect.height) * 100}%`;
         }
@@ -222,6 +258,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (e.type === 'touchstart' || e.type === 'mousedown') {
                 isDragging = true;
                 const event = e.type === 'touchstart' ? e.touches[0] : e;
+                const rect = mediaContainer.getBoundingClientRect();
+                const leftPercent = parseFloat(element.style.left) / 100;
+                const topPercent = parseFloat(element.style.top) / 100;
+                currentX = leftPercent * rect.width;
+                currentY = topPercent * rect.height;
                 initialX = event.clientX - currentX;
                 initialY = event.clientY - currentY;
                 element.classList.add('dragging');
@@ -380,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 addTextBtn.disabled = true;
                 
                 isCameraActive = true;
-                adjustCameraOrientation(); // Ajustar orientação ao abrir a câmera
+                adjustCameraOrientation();
                 
                 cameraView.onloadedmetadata = () => {
                     cameraView.style.width = '100%';
@@ -388,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cameraView.style.maxWidth = '100%';
                     cameraView.style.maxHeight = '100%';
                     adjustCameraOrientation();
+                    adjustTextPosition();
                 };
                 
                 showStatus("Câmera ativada. Use os botões para capturar, alternar ou sair.", 'info');
@@ -448,6 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addTextBtn.disabled = false;
         
         showStatus("Foto capturada. Clique em 'Enviar para o Drive'.", 'info');
+        adjustTextPosition();
     });
 
     switchCameraBtn.addEventListener('click', async () => {
@@ -476,6 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraView.style.maxWidth = '100%';
                 cameraView.style.maxHeight = '100%';
                 adjustCameraOrientation();
+                adjustTextPosition();
             };
             
             showStatus(`Câmera alternada para ${currentFacingMode === 'environment' ? 'traseira' : 'frontal'}.`, 'info');
@@ -498,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadBtn.disabled = true;
         addTextBtn.disabled = true;
         resetStatus();
+        adjustTextPosition();
     });
 
     chooseFileBtn.addEventListener('click', () => {
@@ -527,6 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 addTextBtn.disabled = false;
                 
                 showStatus("Imagem selecionada. Clique em 'Enviar para o Drive'.", 'info');
+                adjustTextPosition();
             };
             reader.readAsDataURL(file);
         } else {
@@ -609,7 +655,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const textAlign = textElement.style.textAlign || 'center';
                 
                 const textRect = textElement.getBoundingClientRect();
-                const containerRect = mediaContainer.getBoundingClientRect();
                 
                 const relativeX = textRect.left - imgPreviewRect.left + (textRect.width / 2);
                 const relativeY = textRect.top - imgPreviewRect.top + (textRect.height / 2);
