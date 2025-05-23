@@ -235,10 +235,6 @@ h3 {
     background-color: black;
 }
 
-.media-container.fullscreen.landscape {
-    transform: none;
-}
-
 #cameraView {
     width: 100%;
     height: 100%;
@@ -250,17 +246,15 @@ h3 {
     left: 50%;
     transform: translate(-50%, -50%);
     object-fit: contain;
-    transition: transform 0.3s ease;
+    transition: object-fit 0.3s ease, transform 0.3s ease;
+}
+
+#cameraView.landscape {
+    object-fit: cover;
 }
 
 .media-container.fullscreen #cameraView {
     object-fit: cover;
-}
-
-.media-container.fullscreen.landscape #cameraView {
-    width: 100vh;
-    height: 100vw;
-    transform: translate(-50%, -50%) rotate(90deg);
 }
 
 #imagePreview {
@@ -373,7 +367,6 @@ h3 {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Estilos do Editor de Texto */
 .text-toolbar {
     position: fixed;
     bottom: 20px;
@@ -441,7 +434,6 @@ h3 {
     outline: 2px dashed var(--primary-color);
 }
 
-/* Estilos do Menu da Câmera */
 .camera-menu {
     position: fixed;
     bottom: 20px;
@@ -453,15 +445,6 @@ h3 {
     box-shadow: 0 0 10px rgba(0,0,0,0.2);
     z-index: 1001;
     display: none;
-    transition: transform 0.3s ease;
-}
-
-.camera-menu.landscape {
-    bottom: auto;
-    right: 20px;
-    left: auto;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
 .camera-controls {
@@ -471,11 +454,6 @@ h3 {
     align-items: center;
 }
 
-.camera-menu.landscape .camera-controls {
-    flex-direction: column;
-}
-
-/* Estilos dos Filtros */
 .filters-container {
     width: 100%;
     max-width: 600px;
@@ -571,7 +549,6 @@ h3 {
     object-fit: cover;
 }
 
-/* Aplicar filtros às imagens de pré-visualização com base no data-filter */
 .filter-btn[data-filter="none"] .filter-preview {
     filter: none;
 }
@@ -604,7 +581,6 @@ h3 {
     filter: blur(2px);
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
     .container {
         padding: 25px;
@@ -648,11 +624,6 @@ h3 {
     .camera-menu {
         padding: 8px;
         bottom: 15px;
-    }
-
-    .camera-menu.landscape {
-        right: 15px;
-        padding: 8px;
     }
 
     .camera-controls {
@@ -719,11 +690,6 @@ h3 {
     .camera-menu {
         padding: 6px;
         bottom: 10px;
-    }
-
-    .camera-menu.landscape {
-        right: 10px;
-        padding: 6px;
     }
 
     .camera-controls {

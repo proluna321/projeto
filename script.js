@@ -47,7 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentFilterIntensity = 100;
     let isCameraActive = false;
     let currentFacingMode = 'environment';
-    let isLandscape = false;
 
     // Função para verificar se é dispositivo móvel
     function isMobileDevice() {
@@ -73,28 +72,26 @@ document.addEventListener('DOMContentLoaded', function() {
     observer.observe(imagePreview, { attributes: true, attributeFilter: ['style'] });
     observer.observe(cameraView, { attributes: true, attributeFilter: ['style'] });
 
-    // Função para ajustar a visualização da câmera com base na orientação
+    // Função para ajustar a orientação da câmera
     function adjustCameraOrientation() {
-        if (!isCameraActive) return;
-        const orientation = screen.orientation ? screen.orientation.type : window.orientation;
-        isLandscape = orientation.includes('landscape') || (typeof window.orientation === 'number' && Math.abs(window.orientation) === 90);
-        
+        if (!isCameraActive || !isMobileDevice()) return;
+
+        const isLandscape = window.innerWidth > window.innerHeight;
         if (isLandscape) {
-            mediaContainer.classList.add('landscape');
-            cameraMenu.classList.add('landscape');
-            showStatus("Câmera ajustada para modo paisagem", 'info');
+            cameraView.classList.add('landscape');
+            cameraView.style.objectFit = 'cover';
+            cameraView.style.transform = 'translate(-50%, -50%)';
         } else {
-            mediaContainer.classList.remove('landscape');
-            cameraMenu.classList.remove('landscape');
-            showStatus("Câmera ajustada para modo retrato", 'info');
+            cameraView.classList.remove('landscape');
+            cameraView.style.objectFit = 'contain';
+            cameraView.style.transform = 'translate(-50%, -50%)';
         }
     }
 
-    // Detectar mudanças de orientação
-    if (screen.orientation) {
-        screen.orientation.addEventListener('change', adjustCameraOrientation);
-    } else {
+    // Evento de mudança de orientação
+    if (isMobileDevice()) {
         window.addEventListener('orientationchange', adjustCameraOrientation);
+        window.addEventListener('resize', adjustCameraOrientation); // Fallback para compatibilidade
     }
 
     // ========== FUNCIONALIDADES DE TEXTO ==========
@@ -102,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addTextBtn.addEventListener('click', (e) => {
         const existingText = document.querySelector('.draggable-text');
         if (existingText) {
-            return; // Impede a adição de mais textos
+            return;
         }
 
         const isMobile = isMobileDevice();
@@ -177,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         changeAlign.innerHTML = `<i class="fas ${alignments[currentAlignIndex].icon}"></i>`;
     }
 
-    // Tornar elemento manipulável (arrastar, redimensionar, rotacionar)
+    // Tornar elemento manipulável
     function makeTextManipulable(element) {
         let isDragging = false;
         let isPinching = false;
@@ -307,14 +304,12 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('dragstart', (e) => e.preventDefault());
     }
 
-    // Atualizar cor em tempo real
     textColor.addEventListener('input', () => {
         if (activeTextElement) {
             activeTextElement.style.color = textColor.value;
         }
     });
 
-    // Mudar fonte
     changeFont.addEventListener('click', () => {
         currentFontIndex = (currentFontIndex + 1) % fonts.length;
         changeFont.textContent = fonts[currentFontIndex];
@@ -323,7 +318,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Mudar alinhamento
     changeAlign.addEventListener('click', () => {
         currentAlignIndex = (currentAlignIndex + 1) % alignments.length;
         changeAlign.innerHTML = `<i class="fas ${alignments[currentAlignIndex].icon}"></i>`;
@@ -332,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Finalizar edição
     finishText.addEventListener('click', () => {
         if (activeTextElement) {
             activeTextElement.classList.remove('text-active');
@@ -342,7 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Desselecionar texto ao clicar no container
     mediaContainer.addEventListener('click', (e) => {
         if (e.target === mediaContainer) {
             if (activeTextElement) {
@@ -354,7 +346,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Converter RGB para HEX
     function rgbToHex(rgb) {
         if (!rgb) return '#000000';
         const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
@@ -366,7 +357,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========== FUNCIONALIDADES DE CÂMERA E IMAGEM ==========
-    // Abrir câmera e mostrar menu
     toggleCameraBtn.addEventListener('click', async () => {
         if (!isCameraActive) {
             try {
@@ -397,18 +387,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     cameraView.style.height = '100%';
                     cameraView.style.maxWidth = '100%';
                     cameraView.style.maxHeight = '100%';
+                    adjustCameraOrientation();
                 };
                 
                 showStatus("Câmera ativada. Use os botões para capturar, alternar ou sair.", 'info');
             } catch (err) {
                 showError("Erro ao acessar a câmera: " + err.message);
                 mediaContainer.classList.remove('fullscreen');
-                mediaContainer.classList.remove('landscape');
             }
         }
     });
 
-    // Tirar foto
     capturePhotoBtn.addEventListener('click', () => {
         const canvas = document.createElement('canvas');
         const videoWidth = cameraView.videoWidth;
@@ -432,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraView.style.display = 'none';
         cameraMenu.style.display = 'none';
         mediaContainer.classList.remove('fullscreen');
-        mediaContainer.classList.remove('landscape');
         
         const containerRect = mediaContainer.getBoundingClientRect();
         const aspectRatio = videoWidth / videoHeight;
@@ -462,7 +450,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showStatus("Foto capturada. Clique em 'Enviar para o Drive'.", 'info');
     });
 
-    // Alternar câmera
     switchCameraBtn.addEventListener('click', async () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -488,16 +475,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraView.style.height = '100%';
                 cameraView.style.maxWidth = '100%';
                 cameraView.style.maxHeight = '100%';
+                adjustCameraOrientation();
             };
             
             showStatus(`Câmera alternada para ${currentFacingMode === 'environment' ? 'traseira' : 'frontal'}.`, 'info');
-            adjustCameraOrientation();
         } catch (err) {
             showError("Erro ao alternar câmera: " + err.message);
         }
     });
 
-    // Sair da câmera
     exitCameraBtn.addEventListener('click', () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
@@ -508,14 +494,12 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraMenu.style.display = 'none';
         placeholder.style.display = 'flex';
         mediaContainer.classList.remove('fullscreen');
-        mediaContainer.classList.remove('landscape');
         isCameraActive = false;
         uploadBtn.disabled = true;
         addTextBtn.disabled = true;
         resetStatus();
     });
 
-    // Escolher arquivo
     chooseFileBtn.addEventListener('click', () => {
         fileInput.click();
     });
@@ -533,7 +517,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraView.style.display = 'none';
                 cameraMenu.style.display = 'none';
                 mediaContainer.classList.remove('fullscreen');
-                mediaContainer.classList.remove('landscape');
                 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
@@ -551,8 +534,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ========== FUNCIONALIDADES DE FILTROS ==========
-    // Selecionar filtro
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             filterBtns.forEach(b => b.classList.remove('active'));
@@ -562,7 +543,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Aplicar filtro
     function applyFilter() {
         if (!currentImage) return;
         
@@ -578,14 +558,11 @@ document.addEventListener('DOMContentLoaded', function() {
         imagePreview.style.filter = filterValue;
     }
 
-    // Controle de intensidade
     filterIntensity.addEventListener('input', () => {
         currentFilterIntensity = filterIntensity.value;
         applyFilter();
     });
 
-    // ========== FUNCIONALIDADE DE UPLOAD ==========
-    // Enviar para o Drive
     uploadBtn.addEventListener('click', async () => {
         if (!currentImage) {
             showError("Nenhuma imagem para enviar");
@@ -700,7 +677,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ========== FUNÇÕES AUXILIARES ==========
     function showStatus(message, type = 'info') {
         statusDiv.textContent = message;
         statusDiv.className = 'status';
@@ -728,7 +704,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraView.style.display = 'none';
         cameraMenu.style.display = 'none';
         mediaContainer.classList.remove('fullscreen');
-        mediaContainer.classList.remove('landscape');
         resetStatus();
         uploadBtn.disabled = true;
         addTextBtn.disabled = true;
