@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentFilterIntensity = 100;
     let isCameraActive = false;
     let currentFacingMode = 'environment';
+    let isLandscape = false;
 
     // Função para verificar se é dispositivo móvel
     function isMobileDevice() {
@@ -72,29 +73,33 @@ document.addEventListener('DOMContentLoaded', function() {
     observer.observe(imagePreview, { attributes: true, attributeFilter: ['style'] });
     observer.observe(cameraView, { attributes: true, attributeFilter: ['style'] });
 
-    // Função para ajustar a orientação da câmera
+    // Função para ajustar a visualização da câmera com base na orientação
     function adjustCameraOrientation() {
-        if (!isCameraActive || !isMobileDevice()) return;
-
-        const orientation = window.screen.orientation ? window.screen.orientation.angle : window.orientation || 0;
-        const isLandscape = Math.abs(orientation) === 90;
+        if (!isCameraActive) return;
+        const orientation = screen.orientation ? screen.orientation.type : window.orientation;
+        isLandscape = orientation.includes('landscape') || (typeof window.orientation === 'number' && Math.abs(window.orientation) === 90);
         
         if (isLandscape) {
-            cameraView.style.transform = 'rotate(90deg) translate(-50%, -50%)';
-            cameraView.style.transformOrigin = 'center center';
-            cameraView.style.width = '100vh';
-            cameraView.style.height = '100vw';
+            mediaContainer.classList.add('landscape');
+            cameraMenu.classList.add('landscape');
+            showStatus("Câmera ajustada para modo paisagem", 'info');
         } else {
-            cameraView.style.transform = 'translate(-50%, -50%)';
-            cameraView.style.width = '100%';
-            cameraView.style.height = '100%';
+            mediaContainer.classList.remove('landscape');
+            cameraMenu.classList.remove('landscape');
+            showStatus("Câmera ajustada para modo retrato", 'info');
         }
+    }
+
+    // Detectar mudanças de orientação
+    if (screen.orientation) {
+        screen.orientation.addEventListener('change', adjustCameraOrientation);
+    } else {
+        window.addEventListener('orientationchange', adjustCameraOrientation);
     }
 
     // ========== FUNCIONALIDADES DE TEXTO ==========
     // Adicionar novo texto
     addTextBtn.addEventListener('click', (e) => {
-        // Verificar se já existe um texto
         const existingText = document.querySelector('.draggable-text');
         if (existingText) {
             return; // Impede a adição de mais textos
@@ -129,10 +134,8 @@ document.addEventListener('DOMContentLoaded', function() {
         textElement.style.transform = 'translate(-50%, -50%)';
         textElement.style.whiteSpace = 'pre-wrap';
 
-        // Tornar arrastável e manipulável
         makeTextManipulable(textElement);
 
-        // Selecionar ao clicar
         textElement.addEventListener('click', (e) => {
             e.stopPropagation();
             selectTextElement(textElement);
@@ -141,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Selecionar ao tocar
         textElement.addEventListener('touchstart', (e) => {
             e.stopPropagation();
             selectTextElement(textElement);
@@ -164,7 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
         element.contentEditable = true;
         textToolbar.style.display = 'block';
 
-        // Atualizar controles com as propriedades do texto selecionado
         textColor.value = rgbToHex(element.style.color) || '#000000';
         const fontFamily = element.style.fontFamily || 'Arial';
         currentFontIndex = fonts.indexOf(fontFamily);
@@ -189,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let currentScale = 1;
         let currentRotation = 0;
 
-        // Obter escala e rotação atuais
         function getTransform() {
             const transform = element.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
             transform.forEach(t => {
@@ -202,7 +202,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Iniciar manipulação
         function startManipulation(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -211,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
             getTransform();
 
             if (isMobile && e.type === 'touchstart' && e.touches.length === 2) {
-                // Gestos com dois dedos
                 isPinching = true;
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
@@ -225,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
                 element.classList.add('dragging');
             } else if (e.type === 'touchstart' || e.type === 'mousedown') {
-                // Arrasto com um dedo ou mouse
                 isDragging = true;
                 const event = e.type === 'touchstart' ? e.touches[0] : e;
                 initialX = event.clientX - currentX;
@@ -238,7 +235,6 @@ document.addEventListener('DOMContentLoaded', function() {
             element.style.cursor = isPinching ? 'grabbing' : 'move';
         }
 
-        // Manipular (mover, redimensionar, rotacionar)
         function manipulate(e) {
             if (!isDragging && !isPinching) return;
 
@@ -249,7 +245,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const elementRect = element.getBoundingClientRect();
 
             if (isPinching && e.type === 'touchmove' && e.touches.length === 2) {
-                // Redimensionar e rotacionar
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 const currentDistance = Math.hypot(
@@ -272,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentScale = newScale;
                 currentRotation = newRotation;
             } else if (isDragging) {
-                // Mover
                 const event = e.type === 'touchmove' ? e.touches[0] : e;
                 let newX = event.clientX - initialX;
                 let newY = event.clientY - initialY;
@@ -292,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Finalizar manipulação
         function stopManipulation() {
             isDragging = false;
             isPinching = false;
@@ -302,18 +295,15 @@ document.addEventListener('DOMContentLoaded', function() {
             element.classList.remove('dragging');
         }
 
-        // Eventos de mouse
         element.addEventListener('mousedown', startManipulation);
         document.addEventListener('mousemove', manipulate);
         document.addEventListener('mouseup', stopManipulation);
 
-        // Eventos de toque
         element.addEventListener('touchstart', startManipulation, { passive: false });
         document.addEventListener('touchmove', manipulate, { passive: false });
         document.addEventListener('touchend', stopManipulation);
         document.addEventListener('touchcancel', stopManipulation);
 
-        // Prevenir comportamento padrão de arrasto
         element.addEventListener('dragstart', (e) => e.preventDefault());
     }
 
@@ -400,24 +390,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 addTextBtn.disabled = true;
                 
                 isCameraActive = true;
+                adjustCameraOrientation(); // Ajustar orientação ao abrir a câmera
                 
                 cameraView.onloadedmetadata = () => {
                     cameraView.style.width = '100%';
                     cameraView.style.height = '100%';
                     cameraView.style.maxWidth = '100%';
                     cameraView.style.maxHeight = '100%';
-                    adjustCameraOrientation(); // Ajustar orientação ao carregar
                 };
-                
-                // Adicionar ouvinte para mudanças de orientação
-                if (isMobileDevice()) {
-                    window.addEventListener('orientationchange', adjustCameraOrientation);
-                }
                 
                 showStatus("Câmera ativada. Use os botões para capturar, alternar ou sair.", 'info');
             } catch (err) {
                 showError("Erro ao acessar a câmera: " + err.message);
                 mediaContainer.classList.remove('fullscreen');
+                mediaContainer.classList.remove('landscape');
             }
         }
     });
@@ -446,6 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraView.style.display = 'none';
         cameraMenu.style.display = 'none';
         mediaContainer.classList.remove('fullscreen');
+        mediaContainer.classList.remove('landscape');
         
         const containerRect = mediaContainer.getBoundingClientRect();
         const aspectRatio = videoWidth / videoHeight;
@@ -471,11 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
         isCameraActive = false;
         uploadBtn.disabled = false;
         addTextBtn.disabled = false;
-        
-        // Remover ouvinte de orientação ao capturar a foto
-        if (isMobileDevice()) {
-            window.removeEventListener('orientationchange', adjustCameraOrientation);
-        }
         
         showStatus("Foto capturada. Clique em 'Enviar para o Drive'.", 'info');
     });
@@ -506,10 +488,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraView.style.height = '100%';
                 cameraView.style.maxWidth = '100%';
                 cameraView.style.maxHeight = '100%';
-                adjustCameraOrientation(); // Ajustar orientação ao alternar câmera
             };
             
             showStatus(`Câmera alternada para ${currentFacingMode === 'environment' ? 'traseira' : 'frontal'}.`, 'info');
+            adjustCameraOrientation();
         } catch (err) {
             showError("Erro ao alternar câmera: " + err.message);
         }
@@ -526,15 +508,11 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraMenu.style.display = 'none';
         placeholder.style.display = 'flex';
         mediaContainer.classList.remove('fullscreen');
+        mediaContainer.classList.remove('landscape');
         isCameraActive = false;
         uploadBtn.disabled = true;
         addTextBtn.disabled = true;
         resetStatus();
-        
-        // Remover ouvinte de orientação ao sair da câmera
-        if (isMobileDevice()) {
-            window.removeEventListener('orientationchange', adjustCameraOrientation);
-        }
     });
 
     // Escolher arquivo
@@ -555,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraView.style.display = 'none';
                 cameraMenu.style.display = 'none';
                 mediaContainer.classList.remove('fullscreen');
+                mediaContainer.classList.remove('landscape');
                 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
@@ -667,7 +646,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctx.textAlign = textAlign;
                 ctx.textBaseline = 'middle';
 
-                // Aplicar transformação (escala e rotação)
                 const transform = textElement.style.transform.match(/scale\(([^)]+)\)|rotate\(([^)]+)\)/g) || [];
                 let scale = 1;
                 let rotation = 0;
@@ -750,6 +728,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cameraView.style.display = 'none';
         cameraMenu.style.display = 'none';
         mediaContainer.classList.remove('fullscreen');
+        mediaContainer.classList.remove('landscape');
         resetStatus();
         uploadBtn.disabled = true;
         addTextBtn.disabled = true;
@@ -770,11 +749,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         isCameraActive = false;
-        
-        // Remover ouvinte de orientação ao resetar interface
-        if (isMobileDevice()) {
-            window.removeEventListener('orientationchange', adjustCameraOrientation);
-        }
     }
 
     function simulateUploadProgress() {
