@@ -102,9 +102,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const containerRect = mediaContainer.getBoundingClientRect();
 
         textElements.forEach(textElement => {
-            // Obter as posições atuais em percentual
-            const leftPercent = parseFloat(textElement.style.left) / 100;
-            const topPercent = parseFloat(textElement.style.top) / 100;
+            // Obter as posições atuais em percentual relativas à imagem
+            const leftPercent = parseFloat(textElement.dataset.leftPercent || textElement.style.left) / 100;
+            const topPercent = parseFloat(textElement.dataset.topPercent || textElement.style.top) / 100;
 
             // Calcular as coordenadas em pixels relativas à imagem exibida
             let newLeft = leftPercent * imgPreviewRect.width;
@@ -117,6 +117,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Converter de volta para percentual em relação ao contêiner
             textElement.style.left = `${(newLeft / containerRect.width) * 100}%`;
             textElement.style.top = `${(newTop / containerRect.height) * 100}%`;
+
+            // Armazenar as posições relativas à imagem para uso futuro
+            textElement.dataset.leftPercent = `${leftPercent * 100}%`;
+            textElement.dataset.topPercent = `${topPercent * 100}%`;
         });
     }
 
@@ -126,13 +130,13 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 adjustCameraOrientation();
                 adjustTextPosition();
-            }, 100); // Pequeno atraso para garantir que o DOM esteja atualizado
+            }, 100);
         });
         window.addEventListener('resize', () => {
             setTimeout(() => {
                 adjustCameraOrientation();
                 adjustTextPosition();
-            }, 100); // Pequeno atraso para garantir que o DOM esteja atualizado
+            }, 100);
         });
     }
 
@@ -172,6 +176,8 @@ document.addEventListener('DOMContentLoaded', function() {
         textElement.style.top = y;
         textElement.style.transform = 'translate(-50%, -50%)';
         textElement.style.whiteSpace = 'pre-wrap';
+        textElement.dataset.leftPercent = x; // Armazenar posição inicial relativa à imagem
+        textElement.dataset.topPercent = y;
 
         makeTextManipulable(textElement);
 
@@ -264,13 +270,13 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (e.type === 'touchstart' || e.type === 'mousedown') {
                 isDragging = true;
                 const event = e.type === 'touchstart' ? e.touches[0] : e;
-                const rect = mediaContainer.getBoundingClientRect();
-                const leftPercent = parseFloat(element.style.left) / 100;
-                const topPercent = parseFloat(element.style.top) / 100;
+                const rect = imagePreview.getBoundingClientRect();
+                const leftPercent = parseFloat(element.dataset.leftPercent || element.style.left) / 100;
+                const topPercent = parseFloat(element.dataset.topPercent || element.style.top) / 100;
                 currentX = leftPercent * rect.width;
                 currentY = topPercent * rect.height;
-                initialX = event.clientX - currentX;
-                initialY = event.clientY - currentY;
+                initialX = event.clientX - currentX - (rect.left - mediaContainer.getBoundingClientRect().left);
+                initialY = event.clientY - currentY - (rect.top - mediaContainer.getBoundingClientRect().top);
                 element.classList.add('dragging');
             }
 
@@ -285,8 +291,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation();
 
-            const rect = mediaContainer.getBoundingClientRect();
-            const elementRect = element.getBoundingClientRect();
+            const imgRect = imagePreview.getBoundingClientRect();
+            const containerRect = mediaContainer.getBoundingClientRect();
 
             if (isPinching && e.type === 'touchmove' && e.touches.length === 2) {
                 const touch1 = e.touches[0];
@@ -312,21 +318,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentRotation = newRotation;
             } else if (isDragging) {
                 const event = e.type === 'touchmove' ? e.touches[0] : e;
-                let newX = event.clientX - initialX;
-                let newY = event.clientY - initialY;
+                let newX = event.clientX - initialX - (imgRect.left - containerRect.left);
+                let newY = event.clientY - initialY - (imgRect.top - containerRect.top);
 
                 const minX = 0;
                 const minY = 0;
-                const maxX = rect.width - elementRect.width;
-                const maxY = rect.height - elementRect.height;
+                const maxX = imgRect.width;
+                const maxY = imgRect.height;
 
                 newX = Math.max(minX, Math.min(newX, maxX));
                 newY = Math.max(minY, Math.min(newY, maxY));
 
                 currentX = newX;
                 currentY = newY;
-                element.style.left = `${(newX / rect.width) * 100}%`;
-                element.style.top = `${(newY / rect.height) * 100}%`;
+
+                // Armazenar posições relativas à imagem
+                element.dataset.leftPercent = `${(newX / imgRect.width) * 100}%`;
+                element.dataset.topPercent = `${(newY / imgRect.height) * 100}%`;
+
+                // Converter para percentual em relação ao contêiner
+                const containerX = newX + (imgRect.left - containerRect.left);
+                const containerY = newY + (imgRect.top - containerRect.top);
+                element.style.left = `${(containerX / containerRect.width) * 100}%`;
+                element.style.top = `${(containerY / containerRect.height) * 100}%`;
             }
         }
 
@@ -569,6 +583,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 cameraMenu.style.display = 'none';
                 mediaContainer.classList.remove('fullscreen');
                 
+                const img = new Image();
+                img.onload = () => {
+                    const containerRect = mediaContainer.getBoundingClientRect();
+                    const aspectRatio = img.width / img.height;
+                    let newWidth = containerRect.width;
+                    let newHeight = newWidth / aspectRatio;
+                    
+                    if (newHeight > containerRect.height) {
+                        newHeight = containerRect.height;
+                        newWidth = newHeight * aspectRatio;
+                    }
+                    
+                    imagePreview.style.width = `${newWidth}px`;
+                    imagePreview.style.height = `${newHeight}px`;
+                    imagePreview.style.maxWidth = '100%';
+                    imagePreview.style.maxHeight = '100%';
+                    imagePreview.style.transform = 'translate(-50%, -50%)';
+                    
+                    adjustTextPosition();
+                };
+                img.src = currentImage;
+                
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
                     stream = null;
@@ -578,7 +614,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 addTextBtn.disabled = false;
                 
                 showStatus("Imagem selecionada. Clique em 'Enviar para o Drive'.", 'info');
-                adjustTextPosition();
             };
             reader.readAsDataURL(file);
         } else {
@@ -646,9 +681,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const containerRect = mediaContainer.getBoundingClientRect();
             const imgPreviewRect = imagePreview.getBoundingClientRect();
             
-            const offsetX = (containerRect.width - imgPreviewRect.width) / 2;
-            const offsetY = (containerRect.height - imgPreviewRect.height) / 2;
-            
             const scaleX = canvas.width / imgPreviewRect.width;
             const scaleY = canvas.height / imgPreviewRect.height;
             
@@ -660,13 +692,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const fontFamily = textElement.style.fontFamily || 'Arial';
                 const textAlign = textElement.style.textAlign || 'center';
                 
-                const textRect = textElement.getBoundingClientRect();
+                const leftPercent = parseFloat(textElement.dataset.leftPercent || textElement.style.left) / 100;
+                const topPercent = parseFloat(textElement.dataset.topPercent || textElement.style.top) / 100;
                 
-                const relativeX = textRect.left - imgPreviewRect.left + (textRect.width / 2);
-                const relativeY = textRect.top - imgPreviewRect.top + (textRect.height / 2);
-                
-                const x = relativeX * scaleX;
-                const y = relativeY * scaleY;
+                const x = leftPercent * imgPreviewRect.width * scaleX;
+                const y = topPercent * imgPreviewRect.height * scaleY;
                 const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
                 
                 ctx.font = `${scaledFontSize}px ${fontFamily}`;
