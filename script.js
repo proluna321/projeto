@@ -95,23 +95,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const textElements = document.querySelectorAll('.draggable-text');
         if (textElements.length === 0) return;
 
-        const containerRect = mediaContainer.getBoundingClientRect();
         const imgPreviewRect = imagePreview.getBoundingClientRect();
+        const containerRect = mediaContainer.getBoundingClientRect();
 
         textElements.forEach(textElement => {
-            const leftPercent = parseFloat(textElement.style.left) / 100;
-            const topPercent = parseFloat(textElement.style.top) / 100;
+            const xPercent = parseFloat(textElement.dataset.x) || 50;
+            const yPercent = parseFloat(textElement.dataset.y) || 50;
 
             const isImageMode = imagePreview.style.display === 'block';
-            const referenceRect = isImageMode ? imgPreviewRect : containerRect;
+            if (!isImageMode) return;
 
-            let newLeft = leftPercent * referenceRect.width;
-            let newTop = topPercent * referenceRect.height;
-
-            if (isImageMode) {
-                newLeft += referenceRect.left - containerRect.left;
-                newTop += referenceRect.top - containerRect.top;
-            }
+            const newLeft = (xPercent / 100) * imgPreviewRect.width + (imgPreviewRect.left - containerRect.left);
+            const newTop = (yPercent / 100) * imgPreviewRect.height + (imgPreviewRect.top - containerRect.top);
 
             textElement.style.left = `${(newLeft / containerRect.width) * 100}%`;
             textElement.style.top = `${(newTop / containerRect.height) * 100}%`;
@@ -122,11 +117,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isMobileDevice()) {
         window.addEventListener('orientationchange', () => {
             adjustCameraOrientation();
-            adjustTextPosition();
+            setTimeout(adjustTextPosition, 100);
         });
         window.addEventListener('resize', () => {
             adjustCameraOrientation();
-            adjustTextPosition();
+            setTimeout(adjustTextPosition, 100);
         });
     }
 
@@ -166,6 +161,13 @@ document.addEventListener('DOMContentLoaded', function() {
         textElement.style.top = y;
         textElement.style.transform = 'translate(-50%, -50%)';
         textElement.style.whiteSpace = 'pre-wrap';
+
+        const imgPreviewRect = imagePreview.getBoundingClientRect();
+        const containerRect = mediaContainer.getBoundingClientRect();
+        const xPercent = ((parseFloat(x) / 100) * containerRect.width - (imgPreviewRect.left - containerRect.left)) / imgPreviewRect.width * 100;
+        const yPercent = ((parseFloat(y) / 100) * containerRect.height - (imgPreviewRect.top - containerRect.top)) / imgPreviewRect.height * 100;
+        textElement.dataset.x = xPercent;
+        textElement.dataset.y = yPercent;
 
         makeTextManipulable(textElement);
 
@@ -280,6 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
 
             const rect = mediaContainer.getBoundingClientRect();
+            const imgPreviewRect = imagePreview.getBoundingClientRect();
             const elementRect = element.getBoundingClientRect();
 
             if (isPinching && e.type === 'touchmove' && e.touches.length === 2) {
@@ -321,6 +324,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentY = newY;
                 element.style.left = `${(newX / rect.width) * 100}%`;
                 element.style.top = `${(newY / rect.height) * 100}%`;
+
+                const xPercent = ((newX - (imgPreviewRect.left - rect.left)) / imgPreviewRect.width) * 100;
+                const yPercent = ((newY - (imgPreviewRect.top - rect.top)) / imgPreviewRect.height) * 100;
+                element.dataset.x = xPercent;
+                element.dataset.y = yPercent;
             }
         }
 
@@ -369,6 +377,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     finishText.addEventListener('click', () => {
         if (activeTextElement) {
+            const imgPreviewRect = imagePreview.getBoundingClientRect();
+            const containerRect = mediaContainer.getBoundingClientRect();
+            const leftPercent = parseFloat(activeTextElement.style.left) / 100;
+            const topPercent = parseFloat(activeTextElement.style.top) / 100;
+            const xPercent = ((leftPercent * containerRect.width - (imgPreviewRect.left - containerRect.left)) / imgPreviewRect.width) * 100;
+            const yPercent = ((topPercent * containerRect.height - (imgPreviewRect.top - containerRect.top)) / imgPreviewRect.height) * 100;
+            activeTextElement.dataset.x = xPercent;
+            activeTextElement.dataset.y = yPercent;
             activeTextElement.classList.remove('text-active');
             activeTextElement.contentEditable = false;
             activeTextElement = null;
@@ -379,6 +395,14 @@ document.addEventListener('DOMContentLoaded', function() {
     mediaContainer.addEventListener('click', (e) => {
         if (e.target === mediaContainer) {
             if (activeTextElement) {
+                const imgPreviewRect = imagePreview.getBoundingClientRect();
+                const containerRect = mediaContainer.getBoundingClientRect();
+                const leftPercent = parseFloat(activeTextElement.style.left) / 100;
+                const topPercent = parseFloat(activeTextElement.style.top) / 100;
+                const xPercent = ((leftPercent * containerRect.width - (imgPreviewRect.left - containerRect.left)) / imgPreviewRect.width) * 100;
+                const yPercent = ((topPercent * containerRect.height - (imgPreviewRect.top - containerRect.top)) / imgPreviewRect.height) * 100;
+                activeTextElement.dataset.x = xPercent;
+                activeTextElement.dataset.y = yPercent;
                 activeTextElement.classList.remove('text-active');
                 activeTextElement.contentEditable = false;
                 activeTextElement = null;
