@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelHug</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="img/Logo.svg">
+</head>
+<body>
+    <div class="container">
+    <img src="img/Titulo_logo.png" alt="Logo" style="display: block; margin: 0 auto 75px; max-width: 60%; height: auto;">
+        
+        <div class="button-container">
+            <div class="button-row">
+                <button id="toggleCamera" class="btn btn-primary" title="Ativar Câmera"><i class="fas fa-camera"></i></button>
+                <button id="chooseFile" class="btn btn-secondary" title="Selecionar Imagem"><i class="fas fa-upload"></i></button>
+                <button id="addTextBtn" class="btn btn-accent" title="Adicionar Texto"><i class="fas fa-font"></i></button>
+            </div>
+        </div>
+
+        <div class="media-container">
+            <video id="cameraView" autoplay playsinline></video>
+            <img id="imagePreview" src="" alt="Pré-visualização">
+            <div id="placeholder" class="placeholder">
+                <i class="fas fa-image"></i>
+                <p>Nenhuma imagem selecionada</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+            
+            <div id="cameraMenu" class="camera-menu">
+                <div class="camera-controls">
+                    <button id="capturePhoto" class="btn btn-primary"><i class="fas fa-camera"></i></button>
+                    <button id="switchCamera" class="btn btn-secondary"><i class="fas fa-sync-alt"></i></button>
+                    <button id="exitCamera" class="btn btn-danger"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="textToolbar" class="text-toolbar" style="display: none;">
+            <div class="text-controls">
+                <input type="color" id="textColor" class="color-picker">
+                <button id="changeFont" class="btn-text">Arial</button>
+                <button id="changeAlign" class="btn-text"><i class="fas fa-align-center"></i></button>
+                <button id="finishText" class="btn-text done">Concluir</button>
+            </div>
+        </div>
+
+        <div id="filtersContainer" class="filters-container">
+            <h3><i class="fas fa-sliders-h"></i>Filtros</h3>
+            <div class="filters-scroll">
+                <div class="filter-btn" data-filter="none">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="grayscale(100%)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="sepia(100%)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="brightness(150%)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="contrast(150%)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="saturate(200%)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="hue-rotate(90deg)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+                <div class="filter-btn" data-filter="blur(2px)">
+                    <img src="img/Logo_icon.png" class="filter-icon" alt="Ícone do filtro">
+                </div>
+            </div>
+            <div class="filter-controls">
+                <input type="range" id="filterIntensity" min="0" max="100" value="100" class="filter-slider">
+            </div>
+        </div>
+
+        <div class="upload-button-container">
+            <button id="uploadBtn" class="btn btn-success"><i class="fas fa-cloud-upload-alt"></i> Enviar</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div id="progressContainer" class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+            <div id="progressText" class="progress-text">0%</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'946e32d1986ee3b1',t:'MTc0ODQzOTk5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'946ed5684de76935',t:'MTc0ODQ0NjY0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
